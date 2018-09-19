@@ -1,0 +1,169 @@
+<!DOCTYPE html><html lang="zh-Hans"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>图片加载库Glide总结 | AlminChou blog</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/8.0.0/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">图片加载库Glide总结</h1><a id="logo" href="/.">AlminChou blog</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> Home</i></a><a href="/archives/"><i class="fa fa-archive"> Archive</i></a><a href="/about/"><i class="fa fa-user"> About</i></a><a href="/atom.xml"><i class="fa fa-rss"> RSS</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">图片加载库Glide总结</h1><div class="post-meta">Sep 19, 2018</div><div class="post-content"><h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>Glide是在Picasso基础上进行的二次开发的一个快速高效的Android图片加载库，注重于平滑的滚动。Glide提供了易用的API，高性能、可扩展的图片解码管道（decode pipeline），以及自动的资源池技术。</p>
+<p>Glide 支持拉取，解码和展示视频快照，图片，和GIF动画。Glide的Api是如此的灵活，开发者甚至可以插入和替换成自己喜爱的任何网络栈。默认情况下，Glide使用的是一个定制化的基于HttpUrlConnection的栈，但同时也提供了与Google Volley和Square OkHttp快速集成的工具库。</p>
+<p>虽然Glide 的主要目标是让任何形式的图片列表的滚动尽可能地变得更快、更平滑，但实际上，Glide几乎能满足你对远程图片的拉取/缩放/显示的一切需求。</p>
+<h3 id="相关流行图片加载库"><a href="#相关流行图片加载库" class="headerlink" title="相关流行图片加载库"></a>相关流行图片加载库</h3><pre><code>当前流行的开源图库有 ： Picasso（Square开源）、Glide（Google开源）、Fresco（Facebook开源），当然老旧年代的Universal-Image-Loader暂时忽略。
+</code></pre><h4 id="对比Picasso"><a href="#对比Picasso" class="headerlink" title="对比Picasso"></a>对比Picasso</h4><p>现在比较常用与对比的是Picasso了，所以对于Picasso来说Glide到底有什么优劣势呢？</p>
+<pre><code>1.体积上Picasso远小于Glide
+
+2.旧版本默认情况下Picasso采用的ARGB-8888,Glide采用的是RGB-565，现在新版本是ARGB_8888
+
+3.Glide可以加载以及缓存gif图，还可以将任何的本地视频解码成一张静态图片。
+
+4.Glide会根据每一个ImageView的大小进行一次缓存，而Picasso永远只缓存一种原图，所以每次都要处理再显示，所以Glide会比picasso加载要快，且内存开销小（默认Bitmap格式的不同，使得内存开销是Picasso的一半）
+
+5.Glide可以设置多样的加载图片动画，而Picasso只有只有一种动画：fading in
+
+6.在Adapter中Picasso需要自行处理图片错乱问题，而glide默认做了处理
+
+7.Glide自带toBytes() 和transcode() 两个方法可以用来获取、解码和变换背景图片，并且transcode() 方法还能够改变图片的样式。
+
+8.Glide支持Okhttp,volley，可以自主封装协议引擎
+</code></pre><h3 id="使用方法"><a href="#使用方法" class="headerlink" title="使用方法"></a>使用方法</h3><p>准备工作</p>
+<pre><code>首先加入依赖：
+dependencies {
+    compile &apos;com.github.bumptech.glide:glide:4.7.1&apos;
+    annotationProcessor &apos;com.github.bumptech.glide:compiler:4.7.1&apos;
+}
+</code></pre><p>简单的加载方法</p>
+<pre><code>简单加载图片：
+Glide.with(activity).load(&quot;http://test.png&quot;).into(imageView)
+
+手动取消加载同样很简单：
+Glide.with(fragment).clear(imageView);
+
+由于api采用了builder模式的链式调用，以下分离介绍一下每个方法：
+
+Glide.with(fragment)
+Glide.with(view)
+Glide.with(context)
+with（）中传入的参数为Activiyt与Fragment时候会自动绑定生命追进行安全的取消加载与回收资源。
+
+
+常用加载参数
+load(Uri uri)
+load(String uri)
+load(Bitmap bitmap)
+load(Drawable drawable)
+load(File file)
+load(int resourceId)
+load(byte[] model)
+几乎涵盖了所有常用类型，使用十分简单。
+
+加载对象
+into(ImageView imageView)
+into(Target&lt;T&gt; target)
+</code></pre><h3 id="加载细节（RequestOptions）"><a href="#加载细节（RequestOptions）" class="headerlink" title="加载细节（RequestOptions）"></a>加载细节（RequestOptions）</h3><p>Glide中的大部分设置项都可以通过 RequestOptions 类和 <code>apply(RequestOptions requestOptions)</code> 方法来应用到程序中。</p>
+<p>使用 RequestOptions 可以实现（包括但不限于）：</p>
+<ul>
+<li>占位符(Placeholders)</li>
+<li>转换(Transformations)</li>
+<li>缓存策略(Caching Strategies)</li>
+<li>组件特有的设置项，例如编码质量，或Bitmap的解码配置等。</li>
+</ul>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> requestOptions = RequestOptions()</span><br><span class="line">        .placeholder(R.drawable.abc_ic_clear_material)<span class="comment">//加载前的占位图</span></span><br><span class="line">        .error(R.drawable.abc_ab_share_pack_mtrl_alpha)<span class="comment">//加载失败后占位图</span></span><br><span class="line">        .<span class="keyword">override</span>(<span class="number">400</span>,<span class="number">600</span>)<span class="comment">//指定宽高大小</span></span><br><span class="line">        .fitCenter()</span><br><span class="line">        .centerCrop()</span><br><span class="line">        .circleCrop()</span><br><span class="line">        .skipMemoryCache(<span class="literal">true</span>)	<span class="comment">//跳过内存缓存</span></span><br><span class="line">        .diskCacheStrategy(DiskCacheStrategy.ALL)	<span class="comment">//缓存原图以及被修改后所有不同尺寸的最终图像</span></span><br><span class="line">        .diskCacheStrategy(DiskCacheStrategy.NONE)	<span class="comment">//不进行缓存操作</span></span><br><span class="line">        .diskCacheStrategy(DiskCacheStrategy.DATA)	<span class="comment">//只缓存原来分辨率的图片</span></span><br><span class="line">        .diskCacheStrategy(DiskCacheStrategy.RESOURCE)	<span class="comment">//只缓存最终的图片</span></span><br><span class="line"></span><br><span class="line">Glide.with(<span class="keyword">this</span>).asBitmap().load(<span class="string">""</span>).apply(requestOptions).into(imageView)</span><br></pre></td></tr></table></figure>
+<h5 id="加载动画-TransitionOptions"><a href="#加载动画-TransitionOptions" class="headerlink" title="加载动画 TransitionOptions"></a>加载动画 TransitionOptions</h5><pre><code>Glide 提供了很多的过渡效果，用户可以手动地应用于每个请求，但是应该尽量避免在adpater中使用动画因为会降低性能，动画比解码要消耗多。
+提供了三种对应过渡效果实现：
+Drawable -&gt; DrawableTransitionOptions
+Bitmap -&gt; BitmapTransitionOptions
+其他类型 -&gt; GenericTransitionOptions
+
+Glide.with(this).load(&quot;&quot;).transition(DrawableTransitionOptions.withCrossFade()).into(imageView)
+
+* 自定义动画：
+1.实现 TransitionFactory
+2.使用 DrawableTransitionOptions.with() 来将你自定义的 TransitionFactory 应用到加载中。
+3.如果需要定制来源的需求需要控制传入的DataSuoce的类型
+</code></pre><h5 id="剪裁与变换-Transformations"><a href="#剪裁与变换-Transformations" class="headerlink" title="剪裁与变换 Transformations"></a>剪裁与变换 Transformations</h5><p>在Glide中，Transformations 可以获取资源并修改它，然后返回被修改后的资源。通常变换操作是用来完成剪裁或对位图应用过滤器，但它也可以用于转换GIF动画，甚至自定义的资源类型。</p>
+<pre><code>*自带了常见的图片变换属性例如：
+
+ CenterCrop
+ FitCenter
+ CircleCrop
+可以直接静态导入使用
+
+val requestOptions = RequestOptions().fitCenter()
+Glide.with(this).load(&quot;&quot;).apply(requestOptions).into(imageView)
+or
+Glide.with(this).load(&quot;&quot;).apply(fitCenterTransform()).into(imageView)
+
+
+* 复合变换要注意：
+RequestOptions().transform().transform()会覆盖前面的transform
+如果需要使用多个Transformation需要使用
+RequestOptions().transforms()
+or
+RequestOptions().transform(new MultiTransformation&lt;&gt;(transformations))
+
+* 自定义Transformation
+尽管 Glide 提供了各种各样的内置 Transformation 实现，如果你需要额外的功能，你也可以实现你自己的 Transformation。
+public interface Transformation&lt;T&gt; extends Key {
+    @NonNull
+    Resource&lt;T&gt; transform(@NonNull Context context, @NonNull Resource&lt;T&gt; resource,
+        int outWidth, int outHeight);
+}
+
+如果只是修改Bitmap类型，建议直接继承 BitmapTransformation ，因为它帮我们处理了一些提取图片成bitmap对象以及回收原始资源的操作。
+注意：自定义别忘了覆盖实现hascode()和equals()和updateDiskCacheKey()以免缓存工作的正确性。
+</code></pre><h5 id="缓存策略"><a href="#缓存策略" class="headerlink" title="缓存策略"></a>缓存策略</h5><pre><code>默认情况下，Glide 会在开始一个新的图片请求之前检查以下多级的缓存：
+
+活动资源 (Active Resources) - 现在是否有另一个 View 正在展示这张图片？
+内存缓存 (Memory cache) - 该图片是否最近被加载过并仍存在于内存中？
+资源类型（Resource） - 该图片是否之前曾被解码、转换并写入过磁盘缓存？
+数据来源 (Data) - 构建这个图片的资源是否之前曾被写入过文件缓存？
+前两步检查图片是否在内存中，如果是则直接返回图片。后两步则检查图片是否在磁盘上，以便快速但异步地返回图片。
+
+如果四个步骤都未能找到图片，则Glide会返回到原始资源以取回数据（原始文件，Uri, Url等）
+
+仅从缓存加载图片：
+onlyRetrieveFromCache(true)
+
+硬盘缓存：
+diskCacheStrategy()
+DiskCacheStrategy.NONE： 表示不缓存任何内容。
+DiskCacheStrategy.DATA： 表示只缓存原始图片。
+DiskCacheStrategy.RESOURCE： 表示只缓存转换过后的图片。
+DiskCacheStrategy.ALL ： 表示既缓存原始图片，也缓存转换过后的图片。
+DiskCacheStrategy.AUTOMATIC：默认选项，它会尝试对本地和远程图片使用最佳的策略
+</code></pre><h5 id="资源管理"><a href="#资源管理" class="headerlink" title="资源管理"></a>资源管理</h5><p>Glide 的磁盘和内存缓存都是 LRU ，这意味着在达到使用限制或持续接近限制值之前，它们将占用持续增加的内存或磁盘空间。Glide内部也实现了ComponentCallback2 相关接口，会根据内存情况进行自动的清理空间，通常并不需要手动清理缓存。</p>
+<p>同样为了增加额外的灵活性，Glide 提供了一些额外的方式来让你可以管理你的应用使用的资源。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">清理内存缓存</span><br><span class="line">Glide.<span class="keyword">get</span>(context).clearMemory();</span><br><span class="line"></span><br><span class="line">清理磁盘缓存</span><br><span class="line">new AsyncTask&lt;<span class="built_in">Void</span>, <span class="built_in">Void</span>, <span class="built_in">Void</span>&gt; &#123;</span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="keyword">protected</span> <span class="built_in">Void</span> doInBackground(<span class="built_in">Void</span>... params) &#123;</span><br><span class="line">    <span class="comment">// This method must be called on a background thread.</span></span><br><span class="line">    Glide.<span class="keyword">get</span>(applicationContext).clearDiskCache();</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="加载gif图"><a href="#加载gif图" class="headerlink" title="加载gif图"></a>加载gif图</h3><pre><code>1.普通加载gif：
+Glide.with(context).load(&quot;&quot;).asGif().error(R.mipmap.error).placeholder(R.mipmap.place).into(imageView)
+如果加载速度慢，可以考虑禁用缓存达到快速展示 diskCacheStrategy(DiskCacheStrategy.SOURCE)
+
+2.加载gif图的第一帧图片
+Glide.with(this).load(gifUrl).asBitmap().placeholder(R.mipmap.place).error(R.mipmap.icon_photo_error).into(imageView);
+
+3.控制gif次数
+Glide.with(this)
+            .load(&quot;http://n.sinaimg.cn/tech/transform/525/w225h300/20180830/cNtG-hikcahf7723370.gif&quot;)
+            .apply(requestOptions)
+            .into(object : DrawableImageViewTarget(iv_gif) {
+                override fun onResourceReady(resource: Drawable, transition: Transition&lt;in Drawable&gt;?) {
+                    if(resource is GifDrawable){
+                        resource.setLoopCount(1)
+                    }
+                    super.onResourceReady(resource, transition)
+                }
+            })
+</code></pre><h3 id="配置GlideBuilder"><a href="#配置GlideBuilder" class="headerlink" title="配置GlideBuilder"></a>配置GlideBuilder</h3><pre><code>途径1：Glide.init(Context context, GlideBuilder builder)传入
+途径2：继承AppGlideModule自动生成
+</code></pre><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@GlideModule</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FcGlideModule</span> : <span class="type">AppGlideModule</span></span>()&#123;</span><br><span class="line">    <span class="keyword">var</span> diskCacheSize = <span class="number">1024</span> * <span class="number">1024</span> * <span class="number">200</span> <span class="comment">// 200mb</span></span><br><span class="line">    <span class="keyword">var</span> memorySize = Runtime.getRuntime().maxMemory().toInt() / <span class="number">8</span>  <span class="comment">// 取1/8最大内存作为最大缓存</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">applyOptions</span><span class="params">(context: <span class="type">Context</span>, builder: <span class="type">GlideBuilder</span>)</span></span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//设置log级别</span></span><br><span class="line">        builder.setLogLevel(Log.DEBUG)</span><br><span class="line"></span><br><span class="line">        <span class="comment">//设置编码格式</span></span><br><span class="line">        builder.setDefaultRequestOptions(RequestOptions().format(DecodeFormat.PREFER_RGB_565))</span><br><span class="line"></span><br><span class="line">        <span class="comment">//默认请求选项</span></span><br><span class="line">        builder.setDefaultRequestOptions(RequestOptions()</span><br><span class="line">                        <span class="comment">//设置等待时的图片</span></span><br><span class="line"><span class="comment">//                        .placeholder(R.drawable.img_loading)</span></span><br><span class="line"><span class="comment">//                        //设置加载失败后的图片显示</span></span><br><span class="line"><span class="comment">//                        .error(R.drawable.img_error)</span></span><br><span class="line">                        .centerCrop()</span><br><span class="line">                        .skipMemoryCache(<span class="literal">false</span>)</span><br><span class="line">                        .diskCacheStrategy(DiskCacheStrategy.ALL)</span><br><span class="line">                        .priority(Priority.HIGH))</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 设置内存缓存</span></span><br><span class="line">        <span class="keyword">val</span> calculator = MemorySizeCalculator.Builder(context)</span><br><span class="line">                .setMemoryCacheScreens(<span class="number">2</span>f)</span><br><span class="line">                .build()</span><br><span class="line">        builder.setMemoryCache(LruResourceCache(calculator.memoryCacheSize.toLong()))</span><br><span class="line">        <span class="comment">//builder.setMemoryCache(new LruResourceCache(memorySize));//自定义大小</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">//设置Bitmap 池</span></span><br><span class="line">        <span class="keyword">val</span> calculator2 = MemorySizeCalculator.Builder(context)</span><br><span class="line">                .setBitmapPoolScreens(<span class="number">3</span>f)</span><br><span class="line">                .build()</span><br><span class="line">        builder.setBitmapPool(LruBitmapPool(calculator2.bitmapPoolSize.toLong()))</span><br><span class="line">        <span class="comment">//builder.setBitmapPool(new LruBitmapPool(memorySize));//自定义大小</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">//设置磁盘缓存【暂时不做处理】</span></span><br><span class="line">        <span class="comment">//lide 使用 DiskLruCacheWrapper 作为默认的 磁盘缓存 。 DiskLruCacheWrapper 是一个使用 LRU 算法的固定大小的磁盘缓存。默认磁盘大小为 250 MB ，位置是在应用的 缓存文件夹 中的一个 特定目录 。</span></span><br><span class="line">        <span class="comment">/*builder.setDiskCache(new ExternalDiskCacheFactory(context));</span></span><br><span class="line"><span class="comment">        builder.setDiskCache(new InternalDiskCacheFactory(context, diskCacheSize));*/</span></span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">registerComponents</span><span class="params">(context: <span class="type">Context</span>, glide: <span class="type">Glide</span>, registry: <span class="type">Registry</span>)</span></span> &#123;</span><br><span class="line">        <span class="keyword">super</span>.registerComponents(context, glide, registry)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="预下载远程图片到缓存中"><a href="#预下载远程图片到缓存中" class="headerlink" title="预下载远程图片到缓存中"></a>预下载远程图片到缓存中</h3><pre><code>Glide.with(fragment).downloadOnly()
+// or if you have the url already:
+Glide.with(fragmetn).download(url);
+</code></pre><h3 id="扩展库"><a href="#扩展库" class="headerlink" title="扩展库"></a>扩展库</h3><pre><code>[glide-transformations](https://github.com/wasabeef/glide-transformations/)
+</code></pre><h3 id="混淆"><a href="#混淆" class="headerlink" title="混淆"></a>混淆</h3><pre><code># ---------   glide ------- start
+-keep public class * implements com.bumptech.glide.module.GlideModule
+-keep public class * extends com.bumptech.glide.module.AppGlideModule
+-keep public class extends com.bumptech.glide.module.AppGlideModule
+-keep class com.bumptech.glide.GeneratedAppGlideModuleImpl
+-keep public enum com.bumptech.glide.load.ImageHeaderParser$** {
+  **[] $VALUES;
+  public *;
+}
+
+# for DexGuard only
+-keepresourcexmlelements manifest/application/meta-data@value=GlideModule
+# ---------   glide ------- end
+</code></pre></div><div class="tags"></div><div class="post-nav"><a class="pre" href="/2018/09/19/Glide部分源码解读/">Glide部分源码解读</a><a class="next" href="/2018/07/18/动态权限适配/">6.0动态权限适配总结</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="http://yoursite.com"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> Categories</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> Tags</i></div><div class="tagcloud"></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> Recent</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/09/19/Glide部分源码解读/">Glide部分源码解读</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/19/图片加载库Glide总结/">图片加载库Glide总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/18/动态权限适配/">6.0动态权限适配总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/28/ConstraintLayout总结/">ConstraintLayout总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/29/多线程同步与安全总结/">Java多线程同步与安全</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/25/Java 动态代理/">Java 动态代理源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/24/点击事件传递机制以及源码分析总结/">点击事件传递机制以及源码分析总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/24/ArrayMap HashMap SparseArray对比/">ArrayMap HashMap SparseArray对比</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/24/Handler消息机制源码分析总结/">Handler 基本使用以及机制源码分析 总结</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> Links</i></div><ul></ul><a href="http://www.example1.com/" title="site-name1" target="_blank">site-name1</a><ul></ul><a href="http://www.example2.com/" title="site-name2" target="_blank">site-name2</a><ul></ul><a href="http://www.example3.com/" title="site-name3" target="_blank">site-name3</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2018 <a href="/." rel="nofollow">AlminChou blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/3.3.5/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/fancybox/3.3.5/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
