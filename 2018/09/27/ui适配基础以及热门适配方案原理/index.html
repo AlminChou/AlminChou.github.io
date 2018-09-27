@@ -1,0 +1,135 @@
+<!DOCTYPE html><html lang="zh-Hans"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>ui适配基础以及热门适配方案原理 | AlminChou blog</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/8.0.0/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">ui适配基础以及热门适配方案原理</h1><a id="logo" href="/.">AlminChou blog</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> Home</i></a><a href="/archives/"><i class="fa fa-archive"> Archive</i></a><a href="/about/"><i class="fa fa-user"> About</i></a><a href="/atom.xml"><i class="fa fa-rss"> RSS</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">ui适配基础以及热门适配方案原理</h1><div class="post-meta">Sep 27, 2018</div><div class="post-content"><h4 id="屏幕尺寸、分辨率、像素密度三者关系"><a href="#屏幕尺寸、分辨率、像素密度三者关系" class="headerlink" title="屏幕尺寸、分辨率、像素密度三者关系:"></a>屏幕尺寸、分辨率、像素密度三者关系:</h4><p>通常情况下，一部手机的分辨率是宽x高，屏幕大小是以寸为单位，那么三者的关系是</p>
+<ul>
+<li>屏幕尺寸（英寸）<ul>
+<li>屏幕对角线的长度</li>
+<li>1英寸等于2.54厘米</li>
+</ul>
+</li>
+<li>分辨率（像素px）<ul>
+<li>横纵向方向像素的大小</li>
+<li>纵向像素 <em> 横向像素，如1920px</em>1080px  （1080p）</li>
+</ul>
+</li>
+<li><p>像素密度（dpi）</p>
+<ul>
+<li>指每英寸屏幕所拥有的像素的数量</li>
+</ul>
+</li>
+<li><p>三者关系 </p>
+<ul>
+<li>像素密度=Sqrt(横向像素<em>横向像素+纵向像素</em>纵向像素)/屏幕尺寸</li>
+<li>注意：像素大小并不是固定的，不同的设备像素的大小可能不相同</li>
+</ul>
+</li>
+</ul>
+<h4 id="公式"><a href="#公式" class="headerlink" title="公式"></a>公式</h4><p>分辨率较多，比较碎片化</p>
+<p>但是公式不变：</p>
+<pre><code>基础公式
+px / density = dp
+DPI / 160 = density
+
+换算最终的公式
+px / (DPI / 160) = dp
+</code></pre><p>所以不管分辨率如何，只要遵循公式，保持比例操作即可。</p>
+<h4 id="暂时两种解决方案："><a href="#暂时两种解决方案：" class="headerlink" title="暂时两种解决方案："></a>暂时两种解决方案：</h4><ul>
+<li>今日头条官方方案</li>
+<li>smallestWidth</li>
+</ul>
+<h4 id="今日头条方案原理以及实现"><a href="#今日头条方案原理以及实现" class="headerlink" title="今日头条方案原理以及实现"></a>今日头条方案原理以及实现</h4><h5 id="原理："><a href="#原理：" class="headerlink" title="原理："></a>原理：</h5><pre><code>根据公式
+
+dp = px / density 
+
+为了保证同一个分辨率设计图下大小适配，以1092*1080分辨率、density = 3 的设计图为例:
+根据公式可得设计图总宽度dp为 360dp( = (1080px / 3)
+为了保持在不同分辨率下每一部分大小都按照当前360dp总宽度为基准后，只能妥协地修改当前activity或application的density达到公司一致。
+
+所以最终是通过修改activity或者application的density从而达到公式标准。
+
+即换成：
+density = px(未知，需要动态获取) / dp（为设计图总宽dp，固定不变）
+计算出需要动态适配的比例
+
+
+最后还有字体的缩放率 ：scaledDensity
+同样需要等比修改其数值
+newDensity / Density = newScaledDensity / scaledDensity
+
+注意：总长度dp是以宽或者高其中一个为基准进行公式带入
+
+优点：成本低，代码量少，更改少
+
+缺点：全局 density 给我们带来的好处是减少大量工作量，带来的坏处是，因为影响的是全局，所以局部特殊控制并不友好，对dialog大小有拉伸影响，对单Activity多个Fragment（适配需求不一致）架构并不友好，对第三方部分ui并不友好，不确定性多。
+</code></pre><h5 id="核心代码："><a href="#核心代码：" class="headerlink" title="核心代码："></a>核心代码：</h5><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">adaptScreen</span><span class="params">(<span class="keyword">final</span> Activity activity)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> DisplayMetrics systemDm = Resources.getSystem().getDisplayMetrics();</span><br><span class="line">    <span class="keyword">final</span> DisplayMetrics appDm = activity.getApplication().getResources().getDisplayMetrics();</span><br><span class="line">    <span class="keyword">final</span> DisplayMetrics activityDm = activity.getResources().getDisplayMetrics();</span><br><span class="line">    <span class="keyword">boolean</span> isVertical = (activity.getResources().getConfiguration().orientation</span><br><span class="line">            == Configuration.ORIENTATION_PORTRAIT);</span><br><span class="line">    <span class="keyword">if</span> (isVertical) &#123;</span><br><span class="line">        activityDm.density = activityDm.widthPixels / (<span class="keyword">float</span>) designWidthInDp;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        activityDm.density = activityDm.heightPixels / (<span class="keyword">float</span>) designWidthInDp;</span><br><span class="line">    &#125;</span><br><span class="line">    activityDm.scaledDensity = activityDm.density * (systemDm.scaledDensity / systemDm.density);</span><br><span class="line">    activityDm.densityDpi = (<span class="keyword">int</span>) (<span class="number">160</span> * activityDm.density + <span class="number">0.5</span>);</span><br><span class="line">    appDm.density = activityDm.density;</span><br><span class="line">    appDm.scaledDensity = activityDm.scaledDensity;</span><br><span class="line">    appDm.densityDpi = activityDm.densityDpi;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>暂时比较成熟的优化方案第三方库 ：<a href="https://github.com/JessYanCoding/AndroidAutoSize" target="_blank" rel="noopener">https://github.com/JessYanCoding/AndroidAutoSize</a></p>
+<h4 id="smallestWidth原理以及实现"><a href="#smallestWidth原理以及实现" class="headerlink" title="smallestWidth原理以及实现"></a>smallestWidth原理以及实现</h4><pre><code>就是我们常用的在不同分辨率资源文件夹value下dimens引用相同名字但是变量不一样，只不过是利用插件自动生成了相同dp名字资源引用下不同变量的dimens。
+
+老式：
+    ├── src/main
+    │   ├── res
+    │   ├── ├──values
+    │   ├── ├──values-800x480
+    │   ├── ├──values-860x540
+    │   ├── ├──values-1024x600
+    │   ├── ├──values-1024x768
+    │   ├── ├──...
+    │   ├── ├──values-2560x1440
+
+
+    老式的方案中系统会自动根据分辨率去查找布局xml文件中引用的demins，向下兼容（当前分辨率有定义则采用，否则采用更低分辨率中的引用，直到找到为止）
+
+
+
+sw方式：
+
+开发者会先提前根据常见主流分辨率屏幕的最小dp宽度生成一系列的values-sw&lt;最小宽度&gt;dp 文件夹 (含有 dimens.xml 文件)，然后与老式方案同样道理会向下兼容系统自动寻找变量引用。
+
+
+生成过程例子： 
+以 最小宽度为360dp 设计图分辨率为例
+* 每个资源dimens.xml文件都会自动定义1dp 到 360dp的引用
+* 引用实例：
+    values-sw360dp中的如下：
+    &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+    &lt;resources&gt;
+        &lt;dimen name=&quot;dp_1&quot;&gt;1dp&lt;/dimen&gt;
+        .......
+        &lt;dimen name=&quot;dp_360&quot;&gt;360dp&lt;/dimen&gt;
+    &lt;/resources&gt;
+
+    则values-sw400dp中如下：
+    &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+    &lt;resources&gt;
+        &lt;dimen name=&quot;dp_1&quot;&gt;1.1111dp&lt;/dimen&gt;
+        .......
+        &lt;dimen name=&quot;dp_360&quot;&gt;400.0000dp&lt;/dimen&gt;
+    &lt;/resources&gt;
+
+生成原理：其实就是均分长度计算每dp的大小 400/360 = 1.1111 dp，所以在sw400dp中每dp实际长度为 1.1111dp
+使用方式：最终布局文件中继续引用以设计图为标准的dp变量引用可刻
+
+生成完成后例子：
+    ├── src/main
+    │   ├── res
+    │   ├── ├──values
+    │   ├── ├──values-sw320dp
+    │   ├── ├──values-sw360dp
+    │   ├── ├──values-sw400dp
+    │   ├── ├──values-sw411dp
+    │   ├── ├──values-sw480dp
+    │   ├── ├──...
+    │   ├── ├──values-sw600dp
+    │   ├── ├──values-sw640dp
+
+
+注意：
+1.只适合竖屏，转屏后会有问题，需要另外生成一套带有后缀的格式资源文件夹（后缀加上 -land 或 -port 即可，像这样，values-sw400dp-land (最小宽度 400 dp 横向)，values-sw400dp-port (最小宽度 400 dp 纵向)
+2.多module情况下不需要重复生成，因为最后打包apk的时候会统一了文件夹，所以主module下生成即可
+
+生成插件教程：https://www.jianshu.com/p/1302ad5a4b04
+
+
+
+优点：稳定，没有性能损耗，范围可控
+
+缺点：日常维护困难，老项目修改成本高，无法覆盖全机型（新机型必须慢慢生成增添对应资源文件夹），增加apk体积，不支持自动旋转屏幕，sp需要再另外生成一套
+</code></pre></div><div class="tags"></div><div class="post-nav"><a class="next" href="/2018/09/19/Glide部分源码解读/">Glide部分源码解读</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="http://yoursite.com"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> Categories</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> Tags</i></div><div class="tagcloud"></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> Recent</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/09/27/ui适配基础以及热门适配方案原理/">ui适配基础以及热门适配方案原理</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/19/Glide部分源码解读/">Glide部分源码解读</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/19/图片加载库Glide总结/">图片加载库Glide总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/18/动态权限适配/">6.0动态权限适配总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/28/ConstraintLayout总结/">ConstraintLayout总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/29/多线程同步与安全总结/">Java多线程同步与安全</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/25/Java 动态代理/">Java 动态代理源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/24/点击事件传递机制以及源码分析总结/">点击事件传递机制以及源码分析总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/24/ArrayMap HashMap SparseArray对比/">ArrayMap HashMap SparseArray对比</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/24/Handler消息机制源码分析总结/">Handler 基本使用以及机制源码分析 总结</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> Links</i></div><ul></ul><a href="http://www.example1.com/" title="site-name1" target="_blank">site-name1</a><ul></ul><a href="http://www.example2.com/" title="site-name2" target="_blank">site-name2</a><ul></ul><a href="http://www.example3.com/" title="site-name3" target="_blank">site-name3</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2018 <a href="/." rel="nofollow">AlminChou blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/3.3.5/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/fancybox/3.3.5/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
