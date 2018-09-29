@@ -1,0 +1,45 @@
+<!DOCTYPE html><html lang="zh-Hans"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>多线程同步与安全总结（2）java多线程通信内存模型.md | AlminChou blog</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/8.0.0/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">多线程同步与安全总结（2）java多线程通信内存模型.md</h1><a id="logo" href="/.">AlminChou blog</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> Home</i></a><a href="/archives/"><i class="fa fa-archive"> Archive</i></a><a href="/about/"><i class="fa fa-user"> About</i></a><a href="/atom.xml"><i class="fa fa-rss"> RSS</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">多线程同步与安全总结（2）java多线程通信内存模型.md</h1><div class="post-meta">Sep 29, 2018</div><div class="post-content"><h3 id="线程内存通信模型"><a href="#线程内存通信模型" class="headerlink" title="线程内存通信模型"></a>线程内存通信模型</h3><p>根据java内存模型的规范定义，java线程之间通信是采用共享内存模型，jvm把内存组织大致分为<code>主内存</code>和<code>工作内存</code>两个区域<code>（即堆区和线程栈区域）</code> ，而主内存是所有线程共享的，但是每个线程都拥有自己独立私有的工作内存。</p>
+<h4 id="主内存"><a href="#主内存" class="headerlink" title="主内存"></a>主内存</h4><blockquote>
+<p>根据java内存模型，所有变量都存放在主内存中，对于所有线程都是共享的。</p>
+</blockquote>
+<h4 id="工作内存"><a href="#工作内存" class="headerlink" title="工作内存"></a>工作内存</h4><blockquote>
+<p>每个线程都拥有一个属于自己的私有独立的工作内存空间，存放主内存中需要访问的变量的拷贝引用。</p>
+</blockquote>
+<p><code>注意线程之间无法互相直接访问对方工作内存中的变量，最终还是需要通过传输到主内存中通过共享变量进行通信</code></p>
+<p>所以在线程中操作的数据其实是工作内存中的拷贝数据，需要等待线程结束后自动提交或者手动调用交互指令提供的方法提交到数据到主内存中才能达到实际的更新操作。<br><br></p>
+<p>线程内存通信模型图：<br><img src="https://note.youdao.com/yws/api/personal/file/WEB77fb6ee6a288f7cd44bdd923ba6f6289?method=download&amp;shareKey=0c6cda78fe9b783327b3820d3bbd85bd" alt="image"></p>
+<h4 id="主内存与工作内存交互指令"><a href="#主内存与工作内存交互指令" class="headerlink" title="主内存与工作内存交互指令"></a>主内存与工作内存交互指令</h4><p>再来关注下变量从主内存读取到工作内存，然后同步回工作内存的细节。Java内存模型定义了以下8种操作来完成主内存与工作内存之间的交互协议，它们都是原子操作（除了对long和double类型的变量）。 </p>
+<ul>
+<li>lock(锁定)<br>作用于主内存中的变量，它将一个变量标志为一个线程独占的状态。 </li>
+<li>unlock(解锁)<br>作用于主内存中的变量，解除变量的锁定状态，被解除锁定状态的变量才能被其他线程锁定。 </li>
+<li>read(读取)<br>作用于主内存中的变量，它把一个变量的值从主内存中传递到工作内存，以便进行下一步的load操作。 </li>
+<li>load(载入)<br>作用于工作内存中的变量，它把read操作传递来的变量值放到工作内存中的变量副本中。 </li>
+<li>use(使用)<br>作用于工作内存中的变量，这个操作把变量副本中的值传递给执行引擎。当执行需要使用到变量值的字节码指令的时候就会执行这个操作。 </li>
+<li>assign(赋值)<br>作用于工作内存中的变量，接收执行引擎传递过来的值，将其赋给工作内存中的变量。当执行赋值的字节码指令的时候就会执行这个操作。 </li>
+<li>store(存储)<br>作用于工作内存中的变量，它把工作内存中的值传递到主内存中来，以便进行下一步write操作。 </li>
+<li>write(写入)<br>作用于主内存中的变量，它把store传递过来的值放到主内存的变量中。</li>
+</ul>
+<h4 id="保证内存可见性和执行有序性"><a href="#保证内存可见性和执行有序性" class="headerlink" title="保证内存可见性和执行有序性"></a>保证内存可见性和执行有序性</h4><p>线程会先在工作内存中对主内存引用拷贝进行数据更新操作，在线程结束后会刷新到主内存进行更新；但是当多线程同时访问一个共享变量时候就需要保证共享变量的内存可见性确保每次访问该变量是得到最新的数值。<br><br></p>
+<ul>
+<li>这时候就需实现线程同步达到数据的安全与统一 </li>
+</ul>
+<p>并发程序正确地执行，必须要保证原子性、可见性以及有序性。只要有一个没有被保证，就有可能会导致程序运行不正确。</p>
+<blockquote>
+<p>可见性：当一个线程修改了被多线程共享的一个主内存变量值时，其他线程能立刻知道这个修改。</p>
+</blockquote>
+<blockquote>
+<p>有序性：即程序执行的顺序按照代码的先后顺序执行。</p>
+</blockquote>
+<blockquote>
+<p>原子性：一个操作或多个操作要么全部执行完成且执行过程不被中断，要么就不执行。</p>
+</blockquote>
+<h4 id="volitate关键字"><a href="#volitate关键字" class="headerlink" title="volitate关键字"></a>volitate关键字</h4><p>作用：volitate使得所有变量的读写都直接刷新到主内存中，从而保证了变量内存的可见性。达到每次读取到内存中最新的数值，防止了指令重排。在读取方面保证了同步，但是并没有对写操作保证同步。</p>
+<p><code>由于voliate修饰的变量可以被多个线程交替修改</code></p>
+<h4 id="synchronized关键字"><a href="#synchronized关键字" class="headerlink" title="synchronized关键字"></a>synchronized关键字</h4><p>作用：主要通过监控锁来限制其他线程的访问达到保证了执行有序性，以及通过创建一个内存屏障实现内存可见性（内存屏障指令保证了所有CPU操作结果都会直接刷到主存中）。</p>
+<h4 id="voliate-与-synchronized-区别"><a href="#voliate-与-synchronized-区别" class="headerlink" title="voliate 与 synchronized 区别"></a>voliate 与 synchronized 区别</h4><ul>
+<li>voliate修饰的是变量，synchronized修饰的是方法与代码块。</li>
+<li>voliate不能保证原子性，synchronized可以</li>
+<li>voliate不会造成阻塞，而synchronized会造成阻塞</li>
+<li>voliate相比synchronized成本更低更轻量</li>
+</ul>
+</div><div class="tags"></div><div class="post-nav"><a class="pre" href="/2018/09/29/多线程同步与安全总结（3）线程消息等待机制，以及sleep与join/">多线程同步与安全总结（3）线程消息等待机制，以及sleep与join.md</a><a class="next" href="/2018/09/27/ui适配基础以及热门适配方案原理/">ui适配基础以及热门适配方案原理</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="http://yoursite.com"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> Categories</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> Tags</i></div><div class="tagcloud"></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> Recent</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/09/29/android 7.0 适配/">Android N 适配</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/29/多线程同步与安全总结（3）线程消息等待机制，以及sleep与join/">多线程同步与安全总结（3）线程消息等待机制，以及sleep与join.md</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/29/多线程同步与安全总结（2）java多线程通信内存模型/">多线程同步与安全总结（2）java多线程通信内存模型.md</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/27/ui适配基础以及热门适配方案原理/">ui适配基础以及热门适配方案原理</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/19/Glide部分源码解读/">Glide部分源码解读</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/19/图片加载库Glide总结/">图片加载库Glide总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/18/动态权限适配/">6.0动态权限适配总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/28/ConstraintLayout总结/">ConstraintLayout总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/29/多线程同步与安全总结/">Java多线程同步与安全</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/25/Java 动态代理/">Java 动态代理源码解析</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> Links</i></div><ul></ul><a href="http://www.example1.com/" title="site-name1" target="_blank">site-name1</a><ul></ul><a href="http://www.example2.com/" title="site-name2" target="_blank">site-name2</a><ul></ul><a href="http://www.example3.com/" title="site-name3" target="_blank">site-name3</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2018 <a href="/." rel="nofollow">AlminChou blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/3.3.5/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/fancybox/3.3.5/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>

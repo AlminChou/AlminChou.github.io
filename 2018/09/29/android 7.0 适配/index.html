@@ -1,0 +1,142 @@
+<!DOCTYPE html><html lang="zh-Hans"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>Android N 适配 | AlminChou blog</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/8.0.0/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">Android N 适配</h1><a id="logo" href="/.">AlminChou blog</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> Home</i></a><a href="/archives/"><i class="fa fa-archive"> Archive</i></a><a href="/about/"><i class="fa fa-user"> About</i></a><a href="/atom.xml"><i class="fa fa-rss"> RSS</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">Android N 适配</h1><div class="post-meta">Sep 29, 2018</div><div class="post-content"><h3 id="主要更新技术点"><a href="#主要更新技术点" class="headerlink" title="主要更新技术点"></a>主要更新技术点</h3><ul>
+<li>APK signature scheme v2 </li>
+<li>FileProvider </li>
+<li>Multi-Window 分屏</li>
+<li>Shortcut</li>
+<li>Notification行为改变</li>
+<li>删除部分广播</li>
+</ul>
+<p><code>targetSdkVersion 25</code>  ,  <code>compileSdkVersion 25</code></p>
+<h4 id="APK-signature-scheme-v2"><a href="#APK-signature-scheme-v2" class="headerlink" title="APK signature scheme v2"></a>APK signature scheme v2</h4><p>Android 7.0 引入一项新的应用签名方案 APK Signature Scheme v2，它能提供更快的应用安装时间和更多针对未授权 APK 文件更改的保护，在Android Studio 2.3开始会默认<code>同时</code>勾选V1和V2签名方案。</p>
+<pre><code>* V1 为7.0以下安装传统方案签署
+* V2 为7.0以上的安全验证方式
+v2 并不是必须的，可以不勾选，也可以在gradle里加上 v2SigningEnabled false到你的配置中
+</code></pre><h6 id="影响："><a href="#影响：" class="headerlink" title="影响："></a>影响：</h6><pre><code>美团早期的快速生成渠道包将不适用
+</code></pre><h6 id="解决方案："><a href="#解决方案：" class="headerlink" title="解决方案："></a>解决方案：</h6><pre><code>1.使用美团新一代打包工具Walle（瓦力）
+2.如果渠道少可以直接用gradle task命令打包
+3.使用友盟多渠道工具打包
+4.v2SigningEnabled false
+</code></pre><h4 id="FileProvider"><a href="#FileProvider" class="headerlink" title="FileProvider"></a>FileProvider</h4><ul>
+<li>7.0以前版本可以用file://URI形式访问其他应用的私有目录文件或者让其他应用访问自己的私有目录文件。</li>
+<li>7.0开始官方Android SDK 中的 StrictMode 策略禁止开发人员在应用外部公开 file:// URI，具体例子为：当本地应用向外应用传递一个包含file://URI的Intent时候就会抛出FileUriExposedException 异常，因此需要引入了FileProvider。</li>
+</ul>
+<h6 id="介绍："><a href="#介绍：" class="headerlink" title="介绍："></a>介绍：</h6><pre><code>FileProvider是ContentProvider的子类，最终目的是帮助我们将访问受限的 file:// URI 转化为可以授权共享的 content:// URI。 
+
+使用方式：
+1.注册FileProvider到Manifest文件中（ContentProvider的必做步骤，不慌）
+&lt;application&gt;
+    ...
+    &lt;provider
+        android:name=&quot;android.support.v4.content.FileProvider&quot;
+        android:authorities=&quot;${applicationId}.自己定义的字符串&quot;
+        android:exported=&quot;false&quot;
+        android:grantUriPermissions=&quot;true&quot;&gt;
+        ...
+    &lt;/provider&gt;
+    ...
+&lt;/application&gt;
+注意： android:exported=&quot;false&quot; 必须为flase，不然源码中true会抛出异常在FileProvider.attachInfo中
+
+
+
+2.添加共享目录定义的xml文件
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;paths xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;&gt;
+    &lt;root-path
+        name=&quot;root_file&quot;
+        path=&quot;&quot; /&gt;
+    &lt;files-path
+        name=&quot;files_file&quot;
+        path=&quot;&quot; /&gt;
+
+    &lt;cache-path
+        name=&quot;cache_file&quot;
+        path=&quot;&quot; /&gt;
+
+    &lt;external-path
+        name=&quot;external_file&quot;
+        path=&quot;&quot; /&gt;
+
+    &lt;external-files-path
+        name=&quot;external_files_file&quot;
+        path=&quot;&quot; /&gt;
+
+    &lt;external-cache-path
+        name=&quot;external_cache_file&quot;
+        path=&quot;&quot; /&gt;
+
+&lt;/paths&gt;
+
+
+字段作用：
+    name  唯一key
+    path  具体目录，如果使用当前节点根目录就直接为空
+
+实例：
+    &lt;external-path  name=&quot;external_file&quot;  path=&quot;picpath&quot; /&gt;
+    最终目录：Environment.getExternalStorageDirectory()/picpath
+
+
+    &lt;external-path  name=&quot;external_file&quot;  path=&quot;&quot; /&gt;
+    最终目录：Environment.getExternalStorageDirectory()/
+
+
+解释节点：
+&lt;root-path/&gt; 设备的根目录new File(&quot;/&quot;);
+
+&lt;files-path/&gt; 应用内部存储空间私有目录下的 files/ 目录，context.getFilesDir()
+
+&lt;cache-path/&gt; 应用内部存储空间私有目录下的 cache/ 目录，context.getCacheDir()
+
+&lt;external-path/&gt; 应用外部存储空间根目录，Environment.getExternalStorageDirectory()
+
+&lt;external-files-path&gt; 应用外部存储空间私有目录下的 files/ 目录，ontext.getExternalFilesDirs()
+
+&lt;external-cache-path&gt; 应用外部存储空间私有目录下的 cache/ 目录，getExternalCacheDirs()
+
+
+
+3.生成被访问的URI
+    7.0以前使用的是  Uri.fromFile(File file)
+    7.0开始使用的是  FileProvider.getUriForFile(Context c, String authorities, File file)
+
+    生成实例： 
+    public static Uri getUriForFile(Context context, File file) {
+    Uri fileUri = null;
+        if (Build.VERSION.SDK_INT &gt;= 24) {
+            fileUri = FileProvider.getUriForFile(context,context.getPackageName() + &quot;.{自己定义的字符串}&quot;,file);
+        } else {
+            fileUri = Uri.fromFile(file);
+        }
+        return fileUri;
+    }
+
+
+    生成URI格式 ： 
+    content://{authorities}/{文件路径}
+
+4.如果外部应用想访问当前应用私有文件时需要申请授权
+    方式1：使用 Context 提供的 grantUriPermission(package, Uri, mode_flags) 方法向其他应用授权访问 URI 对象
+    package ： 需要申请访问的应用包名
+    mode_flags : Intent.FLAG_GRANT_READ_URI_PERMISSION;
+                 Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+
+    注意：在不使用时候记得调用revokeUriPermission()注销授权
+
+
+    方式2：通过Intent利用添加flag访问(比较好的方案)
+    在intent.setDataAndType 与 intent.setData 之后调用即可
+
+    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+</code></pre><h6 id="实用影响场景："><a href="#实用影响场景：" class="headerlink" title="实用影响场景："></a>实用影响场景：</h6><pre><code>1. app提示下载更新，安装最新版本apk
+2. 系统拍照、剪裁图片
+</code></pre><h4 id="删除了三项隐式广播"><a href="#删除了三项隐式广播" class="headerlink" title="删除了三项隐式广播"></a>删除了三项隐式广播</h4><pre><code>Android N 删除了 CONNECTIVITY_CHANGE 、ACTION_NEW_PICTURE 、 ACTION_NEW_VIDEO三个隐式广播，以帮助优化内存使用和电量消耗，以往像CONNECTIVITY_CHANGE广播每次变化总会唤醒所有注册了该广播的应用，给手机带来巨大的压力，所以删除这个广播后可以显著提升设备性能和用户体验。
+
+采取解决策略：
+1.目前仍可以通过注册CONNECTIVITY_CHANGE广播监听网络变化
+2.其他后台优化可以使用JobScheduler API进行进一步优化
+</code></pre><h4 id="Notification行为改变"><a href="#Notification行为改变" class="headerlink" title="Notification行为改变"></a>Notification行为改变</h4><pre><code>可以参考文章： Android通知栏介绍与适配总结 https://iluhcm.com/2017/03/12/experience-of-adapting-to-android-notifications/
+
+各种样式Demo ： https://github.com/AlminChou/Notifi
+</code></pre></div><div class="tags"></div><div class="post-nav"><a class="next" href="/2018/09/29/多线程同步与安全总结（3）线程消息等待机制，以及sleep与join/">多线程同步与安全总结（3）线程消息等待机制，以及sleep与join.md</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="http://yoursite.com"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> Categories</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> Tags</i></div><div class="tagcloud"></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> Recent</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/09/29/android 7.0 适配/">Android N 适配</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/29/多线程同步与安全总结（3）线程消息等待机制，以及sleep与join/">多线程同步与安全总结（3）线程消息等待机制，以及sleep与join.md</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/29/多线程同步与安全总结（2）java多线程通信内存模型/">多线程同步与安全总结（2）java多线程通信内存模型.md</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/27/ui适配基础以及热门适配方案原理/">ui适配基础以及热门适配方案原理</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/19/Glide部分源码解读/">Glide部分源码解读</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/19/图片加载库Glide总结/">图片加载库Glide总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/18/动态权限适配/">6.0动态权限适配总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/28/ConstraintLayout总结/">ConstraintLayout总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/29/多线程同步与安全总结/">Java多线程同步与安全</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/25/Java 动态代理/">Java 动态代理源码解析</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> Links</i></div><ul></ul><a href="http://www.example1.com/" title="site-name1" target="_blank">site-name1</a><ul></ul><a href="http://www.example2.com/" title="site-name2" target="_blank">site-name2</a><ul></ul><a href="http://www.example3.com/" title="site-name3" target="_blank">site-name3</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2018 <a href="/." rel="nofollow">AlminChou blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/3.3.5/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/fancybox/3.3.5/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
